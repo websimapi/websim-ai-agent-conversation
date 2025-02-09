@@ -5,28 +5,64 @@ export class ConversationManager {
         this.conversationRunning = false;
         this.lastMessageTimestamp = 0;
         this.isRequestPending = false;
-        this.cooldown = 15000;
+        this.cooldownPeriod = 15000;
         this.currentSpeaker = 1;
+        this.countdownElement = document.getElementById('countdown');
+        this.countdownInterval = null;
+    }
+
+    setCooldownPeriod(seconds) {
+        this.cooldownPeriod = seconds * 1000;
+        if (this.conversationRunning) {
+            // Reset the countdown with new period
+            this.updateCountdown();
+        }
+    }
+
+    updateCountdown() {
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+        }
+
+        const updateTimer = () => {
+            const currentTime = Date.now();
+            const timeSinceLastMessage = currentTime - this.lastMessageTimestamp;
+            const remainingTime = Math.max(0, Math.ceil((this.cooldownPeriod - timeSinceLastMessage) / 1000));
+            
+            if (this.countdownElement) {
+                this.countdownElement.textContent = remainingTime;
+            }
+        };
+
+        this.countdownInterval = setInterval(updateTimer, 100);
+        updateTimer(); // Initial update
     }
 
     async startConversation() {
         this.conversationRunning = true;
         await this.getAIResponse('You are Agent 1. Start a conversation about an interesting topic.', this.agent1Container);
         this.lastMessageTimestamp = Date.now();
+        this.updateCountdown();
         this.continueConversation();
     }
 
     stopConversation() {
         this.conversationRunning = false;
         this.isRequestPending = false;
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+        }
+        if (this.countdownElement) {
+            this.countdownElement.textContent = Math.ceil(this.cooldownPeriod / 1000);
+        }
     }
 
     async continueConversation() {
         if (!this.conversationRunning || this.isRequestPending) return;
 
         const timeSinceLast = Date.now() - this.lastMessageTimestamp;
-        if (timeSinceLast < this.cooldown) {
-            setTimeout(() => this.continueConversation(), this.cooldown - timeSinceLast);
+        if (timeSinceLast < this.cooldownPeriod) {
+            setTimeout(() => this.continueConversation(), this.cooldownPeriod - timeSinceLast);
             return;
         }
 
@@ -50,6 +86,7 @@ export class ConversationManager {
             }
 
             this.lastMessageTimestamp = Date.now();
+            this.updateCountdown();
         } catch (error) {
             console.error('Conversation error:', error);
         } finally {
@@ -57,7 +94,7 @@ export class ConversationManager {
         }
 
         if (this.conversationRunning) {
-            setTimeout(() => this.continueConversation(), this.cooldown);
+            setTimeout(() => this.continueConversation(), this.cooldownPeriod);
         }
     }
 

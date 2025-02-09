@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const agent2Messages = document.getElementById('agent2-messages');
     const startButton = document.getElementById('start-conversation');
     const stopButton = document.getElementById('stop-conversation');
+    const cooldownSlider = document.getElementById('cooldown-slider');
+    const cooldownValue = document.getElementById('cooldown-value');
 
     const conversationManager = new ConversationManager(
         agent1Messages, 
@@ -21,6 +23,12 @@ document.addEventListener('DOMContentLoaded', () => {
         conversationManager.stopConversation();
         startButton.disabled = false;
         stopButton.disabled = true;
+    });
+
+    cooldownSlider.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value);
+        cooldownValue.textContent = value;
+        conversationManager.setCooldownPeriod(value);
     });
 
     // Initially disable stop button
