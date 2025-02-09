@@ -23,7 +23,8 @@ export class ConversationManager {
         const currentTime = Date.now();
         const timeSinceLastMessage = currentTime - this.lastMessageTimestamp;
 
-        if (timeSinceLastMessage >= 7000) {
+        // Changed from 7000 to 10000 milliseconds
+        if (timeSinceLastMessage >= 10000) {
             try {
                 // Alternate between agents
                 if (this.agent1Container.lastElementChild) {
@@ -46,9 +47,9 @@ export class ConversationManager {
             }
         }
 
-        // Schedule next conversation turn
+        // Changed from 7000 to 10000 milliseconds
         if (this.conversationRunning) {
-            setTimeout(() => this.continueConversation(), 7000);
+            setTimeout(() => this.continueConversation(), 10000);
         }
     }
 
