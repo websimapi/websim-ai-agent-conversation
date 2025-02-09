@@ -3,6 +3,7 @@ export class ConversationManager {
         this.agent1Container = agent1Container;
         this.agent2Container = agent2Container;
         this.conversationRunning = false;
+        this.canFetch = true;
         this.lastMessageTimestamp = 0;
     }
 
@@ -23,9 +24,12 @@ export class ConversationManager {
         const currentTime = Date.now();
         const timeSinceLastMessage = currentTime - this.lastMessageTimestamp;
 
-        // Changed from 7000 to 10000 milliseconds
-        if (timeSinceLastMessage >= 10000) {
+        // Check if we can fetch and enough time has passed
+        if (this.canFetch && timeSinceLastMessage >= 10000) {
             try {
+                // Prevent additional fetches
+                this.canFetch = false;
+
                 // Alternate between agents
                 if (this.agent1Container.lastElementChild) {
                     await this.getAIResponse(
@@ -41,15 +45,23 @@ export class ConversationManager {
                     this.agent1Container
                 );
 
+                // Update timestamp
                 this.lastMessageTimestamp = Date.now();
+
+                // Re-enable fetching after 10 seconds
+                setTimeout(() => {
+                    this.canFetch = true;
+                }, 10000);
             } catch (error) {
                 console.error('Conversation error:', error);
+                // Re-enable fetching in case of error
+                this.canFetch = true;
             }
         }
 
-        // Changed from 7000 to 10000 milliseconds
+        // Continue checking if conversation is running
         if (this.conversationRunning) {
-            setTimeout(() => this.continueConversation(), 10000);
+            setTimeout(() => this.continueConversation(), 1000);
         }
     }
 
