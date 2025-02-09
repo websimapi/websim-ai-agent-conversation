@@ -1,0 +1,34 @@
+const currentTime = Date.now();
+const timeSinceLastMessage = currentTime - this.lastMessageTimestamp;
+
+if (timeSinceLastMessage >= this.cooldownPeriod) {
+    this.isRequestInProgress = true;
+
+    try {
+        if (this.currentAgent === 1) {
+            // Agent 1's turn
+            await this.getAIResponse(
+                `You are Agent 1. Respond to the previous message: "${this.agent2Container.lastElementChild?.textContent || 'Start a conversation'}"`,
+                this.agent1Container
+            );
+            this.currentAgent = 2;
+        } else {
+            // Agent 2's turn
+            await this.getAIResponse(
+                `You are Agent 2. Respond to the previous message: "${this.agent1Container.lastElementChild?.textContent || 'Start a conversation'}"`,
+                this.agent2Container
+            );
+            this.currentAgent = 1;
+        }
+
+        this.lastMessageTimestamp = Date.now();
+    } catch (error) {
+        console.error('Conversation error:', error);
+    } finally {
+        this.isRequestInProgress = false;
+    }
+}
+
+if (this.conversationRunning) {
+    setTimeout(() => this.continueConversation(), this.cooldownPeriod);
+}

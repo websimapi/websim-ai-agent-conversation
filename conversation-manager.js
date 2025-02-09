@@ -3,65 +3,61 @@ export class ConversationManager {
         this.agent1Container = agent1Container;
         this.agent2Container = agent2Container;
         this.conversationRunning = false;
-        this.canFetch = true;
         this.lastMessageTimestamp = 0;
+        this.isRequestPending = false;
+        this.cooldown = 15000;
+        this.currentSpeaker = 1;
     }
 
     async startConversation() {
         this.conversationRunning = true;
-        // Initial prompt to start the conversation
         await this.getAIResponse('You are Agent 1. Start a conversation about an interesting topic.', this.agent1Container);
+        this.lastMessageTimestamp = Date.now();
         this.continueConversation();
     }
 
     stopConversation() {
         this.conversationRunning = false;
+        this.isRequestPending = false;
     }
 
     async continueConversation() {
-        if (!this.conversationRunning) return;
+        if (!this.conversationRunning || this.isRequestPending) return;
 
-        const currentTime = Date.now();
-        const timeSinceLastMessage = currentTime - this.lastMessageTimestamp;
-
-        // Check if we can fetch and enough time has passed
-        if (this.canFetch && timeSinceLastMessage >= 10000) {
-            try {
-                // Prevent additional fetches
-                this.canFetch = false;
-
-                // Alternate between agents
-                if (this.agent1Container.lastElementChild) {
-                    await this.getAIResponse(
-                        `You are Agent 2. Respond to the previous message: "${this.agent1Container.lastElementChild.textContent}"`, 
-                        this.agent2Container
-                    );
-                } else {
-                    await this.getAIResponse('You are Agent 2. Start a conversation about an interesting topic.', this.agent2Container);
-                }
-
-                await this.getAIResponse(
-                    `You are Agent 1. Respond to the previous message: "${this.agent2Container.lastElementChild.textContent}"`, 
-                    this.agent1Container
-                );
-
-                // Update timestamp
-                this.lastMessageTimestamp = Date.now();
-
-                // Re-enable fetching after 10 seconds
-                setTimeout(() => {
-                    this.canFetch = true;
-                }, 10000);
-            } catch (error) {
-                console.error('Conversation error:', error);
-                // Re-enable fetching in case of error
-                this.canFetch = true;
-            }
+        const timeSinceLast = Date.now() - this.lastMessageTimestamp;
+        if (timeSinceLast < this.cooldown) {
+            setTimeout(() => this.continueConversation(), this.cooldown - timeSinceLast);
+            return;
         }
 
-        // Continue checking if conversation is running
+        this.isRequestPending = true;
+        
+        try {
+            if (this.currentSpeaker === 2) {
+                const lastMessage = this.agent1Container.lastElementChild?.textContent || '';
+                await this.getAIResponse(
+                    `You are Agent 2. Respond to: "${lastMessage}"`,
+                    this.agent2Container
+                );
+                this.currentSpeaker = 1;
+            } else {
+                const lastMessage = this.agent2Container.lastElementChild?.textContent || '';
+                await this.getAIResponse(
+                    `You are Agent 1. Respond to: "${lastMessage}"`,
+                    this.agent1Container
+                );
+                this.currentSpeaker = 2;
+            }
+
+            this.lastMessageTimestamp = Date.now();
+        } catch (error) {
+            console.error('Conversation error:', error);
+        } finally {
+            this.isRequestPending = false;
+        }
+
         if (this.conversationRunning) {
-            setTimeout(() => this.continueConversation(), 1000);
+            setTimeout(() => this.continueConversation(), this.cooldown);
         }
     }
 
